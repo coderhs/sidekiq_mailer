@@ -1,9 +1,22 @@
 require 'sidekiq_mailer/version'
 require 'sidekiq_mailer/worker'
 require 'sidekiq_mailer/proxy'
+require 'sidekiq_mailer/configuration'
 
 module Sidekiq
   module Mailer
+    def self.configuration
+      @configuration ||= Configuration.new
+    end
+
+    def self.reset
+      @configuration = Configuration.new
+    end
+
+    def self.configure
+      yield(configuration)
+    end
+
     @@excluded_environments = nil
 
     def self.excluded_environments=(envs)
@@ -45,10 +58,8 @@ module Sidekiq
         self.sidekiq_options_hash = get_sidekiq_options.merge(stringify_keys(opts || {}))
       end
 
-      DEFAULT_OPTIONS = { 'retry' => true, 'queue' => 'mailer' }
-
       def get_sidekiq_options # :nodoc:
-        self.sidekiq_options_hash ||= DEFAULT_OPTIONS
+        self.sidekiq_options_hash ||= { 'retry' => Sidekiq::Mailer.configuration.retry, 'queue' => Sidekiq::Mailer.configuration.queue }
       end
 
       def stringify_keys(hash) # :nodoc:
